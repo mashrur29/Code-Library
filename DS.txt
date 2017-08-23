@@ -1,0 +1,275 @@
+// Expression Evaluation
+
+string InfixPostfix(string s) {
+    stack<char> stk;
+    string ret = "";
+
+    for(int i=0; i<s.size(); i++) {
+        if(s[i]=='(') stk.push(s[i]);
+        else if(s[i]==')') {
+            while(!stk.empty() && stk.top()!='(') {
+                ret += stk.top();
+                stk.pop();
+            }
+            if(!stk.empty()) stk.pop();
+        }
+        if(s[i]>='a' && s[i]<='z') ret += s[i];
+        if(s[i]=='*') stk.push(s[i]);
+        else if(s[i]=='+') {
+            while(!stk.empty() && stk.top()!='+' && stk.top()!='(') {
+                ret += stk.top();
+                stk.pop();
+            }
+            stk.push(s[i]);
+        }
+    }
+
+    while(!stk.empty()) {
+        ret += stk.top();
+        stk.pop();
+    }
+
+    return ret;
+}
+
+long long PostfixValue(string s) {
+    stack<long long> stk;
+    //cout<<s<<endl;
+
+    for(int i=0; i<s.size(); i++) {
+        if(s[i]>='a' && s[i]<='z') stk.push(mp_res[s[i]]);
+        else {
+            long long res;
+            int a = stk.top();
+            stk.pop();
+            int b = stk.top();
+            stk.pop();
+            if(s[i]=='+') res = a + b;
+            else res = a * b;
+            stk.push(res);
+        }
+    }
+
+    return stk.top();
+}
+
+// LCA
+
+#include<bits/stdc++.h>
+using namespace std;
+#define pii pair<int, int>
+
+const int maxi = 20000;
+vector<pii> adj[maxi];
+int sparse[maxi][22], par[maxi], dis[maxi], d[maxi], n;
+
+inline void reset() {
+    for(int i=0; i<maxi; i++) adj[i].clear();
+    memset(d, 0, sizeof(d));
+    memset(dis, 0, sizeof(dis));
+    memset(sparse, -1, sizeof(sparse));
+}
+
+void dfs(int from, int node, int depth) {
+    par[node] = from;
+    d[node] = depth;
+
+    for(int i=0; i<adj[node].size(); i++) {
+        pii x = adj[node][i];
+        if(x.first==from) continue;
+        dis[x.first] = dis[node] + x.second;
+        dfs(node, x.first, depth + 1);
+    }
+
+}
+
+int lca(int u, int v) {
+    if(d[u]<d[v]) swap(u, v);
+
+    int log = 1;
+    while(1) {
+        if(1<<(log+1)>d[u]) break;
+        log++;
+    }
+
+    for(int i = log; i>=0; i--) {
+        if(d[u] - (1<<i) >= d[v]) u = sparse[u][i];
+    }
+
+    if(u==v) return u;
+
+    for(int i = log; i >= 0; i--) {
+        if(sparse[u][i] != -1 && sparse[u][i] != sparse[v][i]) {
+            u = sparse[u][i];
+            v = sparse[v][i];
+        }
+    }
+
+    return par[u];
+}
+
+void init() {
+    for(int i = 0; i < n; i++) sparse[i][0] = par[i];
+
+    for(int j = 1; (1<<j)<n; j++) {
+        for(int i=0; i<n; i++) {
+            if(sparse[i][j-1]!=-1) {
+                sparse[i][j] = sparse[sparse[i][j-1]][j-1];
+            }
+        }
+    }
+
+}
+
+// segment sum using segment tree
+
+#include<bits/stdc++.h>
+using namespace std;
+
+struct info {
+    int best_left, best_right, seg_sum, total;
+};
+
+const int maxi = 50011;
+info tree[3*maxi];
+int a[maxi];
+
+info set_(int val) {
+    info ret;
+    ret.total = val;
+    ret.best_left = ret.best_right = ret.seg_sum = max(-100001, val);
+    return ret;
+}
+
+info comb(info L, info R) {
+    info ret;
+    ret.total = L.total + R.total;
+    ret.best_left = max(max(L.best_left, L.total), L.total + R.best_left);
+    ret.best_right = max(max(R.best_right, R.total), R.total + L.best_right);
+    ret.seg_sum = max(max(L.seg_sum, R.seg_sum), R.best_left + L.best_right);
+    return  ret;
+}
+
+info query(int node, int L, int R, int LL, int RR) {
+    if(RR<L || LL>R) return set_(-100001);
+    if(L>=LL && R<=RR) return tree[node];
+    int left = 2*node;
+    int right = left + 1;
+    int mid = (L + R) / 2;
+
+    if(RR<=mid) return query(left, L, mid, LL, RR);
+    else if(LL>mid) return query(right, mid+1, R, LL, RR);
+    return comb(query(left, L, mid, LL, RR), query(right, mid+1, R, LL, RR));
+}
+
+void update(int node, int L, int R, int ind, int val) {
+    if(L==R && ind==L) {
+        tree[node] = set_(val);
+        return;
+    }
+    int left = 2*node;
+    int right = left + 1;
+    int mid = (L + R) / 2;
+
+    if(ind<=mid) update(left, L, mid, ind, val);
+    else update(right, mid+1, R, ind, val);
+    tree[node] = comb(tree[left], tree[right]);
+}
+
+void init(int node, int L, int R) {
+    if(L==R) {
+        tree[node] = set_(a[L]);
+        return;
+    }
+
+    int left = 2*node;
+    int right = left + 1;
+    int mid = (L + R) / 2;
+    init(left, L, mid);
+    init(right, mid+1, R);
+    tree[node] = comb(tree[left], tree[right]);
+}
+
+int main() {
+    int n, q;
+    scanf("%d", &n);
+    for(int i=1; i<=n; i++) scanf("%d", &a[i]);
+    init(1, 1, n);
+
+    scanf("%d", &q);
+    for(int i=1; i<=q; i++) {
+        int tp, l, r;
+        scanf("%d %d %d", &tp, &l, &r);
+        if(tp) printf("%d\n", query(1, 1, n, l, r).seg_sum);
+        else update(1, 1, n, l, r);
+    }
+
+    return 0;
+}
+
+// persistent segment tree, shows the kth number if a segment is sorted
+// used binary search and vector
+
+#include<bits/stdc++.h>
+using namespace std;
+ 
+const int maxi = 100011;
+int a[maxi];
+vector<int> tree[3*maxi];
+ 
+int query(int node, int L, int R, int LL, int RR, int val) {
+  if(LL>R || RR<L) return 0;
+  if(L>=LL && R<=RR) return (int)(upper_bound(tree[node].begin(), tree[node].end(), val) - tree[node].begin());
+ 
+  int left = 2*node;
+  int right = left + 1;
+  int mid = (L + R) / 2;
+ 
+  return query(left, L, mid, LL, RR, val) + query(right, mid+1, R, LL, RR, val);
+}
+ 
+void init(int node, int L, int R) {
+  if(L==R) {
+    tree[node].push_back(a[L]);
+    return;
+  }
+ 
+  int left = 2*node;
+  int right = left + 1;
+  int mid = (L + R) / 2;
+  init(left, L, mid);
+  init(right, mid+1, R);
+  merge(tree[left].begin(), tree[left].end(), tree[right].begin(), tree[right].end(), back_inserter(tree[node]));
+}
+ 
+int lol(int l, int r, int k, int n) {
+  int lo = -1e9, hi = 1e9, ans;
+ 
+  while(lo<=hi) {
+    int mid = (lo + hi) / 2;
+    int num = query(1, 1, n, l, r, mid);
+    //cout<<num<<endl;
+    if(num==k) ans = mid;
+    if(num>=k) hi = mid - 1;
+    else lo = mid + 1;
+  }
+ 
+  return ans;
+}
+ 
+int main() {
+  int n, m;
+  scanf("%d %d", &n, &m);
+  for(int i=1; i<=n; i++) scanf("%d", &a[i]);
+  init(1, 1, n);
+ 
+  //for(int i=0; i<tree[1].size(); i++) cout<<tree[1][i]<<" "; cout<<endl;
+ 
+  for(int i=1; i<=m; i++) {
+    int l, r, k;
+    scanf("%d %d %d", &l, &r, &k);
+    printf("%d\n", lol(l, r, k, n));
+  }
+ 
+  return 0;
+}
