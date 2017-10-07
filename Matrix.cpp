@@ -3,44 +3,46 @@ using namespace std;
 typedef long long ll;
 ll MOD=1000000007;
 
-struct matrix{
-   ll mat[50][50];
-   ll dim;
+struct matrix {
+    long long mat[10][10];
+    int dim;
 
-   matrix(){};
-   matrix(ll d){
-      dim=d;
-      for(ll i=0; i<dim; i++)
-            for(ll j=0; j<dim; j++) mat[i][j]=0;
-   }
+    matrix() {};
 
-   matrix operator *(const matrix &mul){
+    matrix(int d) {
+        dim = d;
+        for(int i=0; i<dim; i++) {
+            for(int j=0; j<dim; j++) mat[i][j] = 0;
+        }
+    }
+
+    matrix operator *(const matrix &mul) {
         matrix ret = matrix(dim);
-        for(ll i=0; i<dim; i++){
-            for(ll j=0; j<dim; j++){
-                for(ll k=0; k<dim; k++){
-                    ret.mat[i][j] += (mat[i][k])*(mul.mat[k][j]);
+        for(int i=0; i<dim; i++) {
+            for(int j=0; j<dim; j++) {
+                for(int k=0; k<dim; k++) {
+                    ret.mat[i][j] += (mat[i][k]) * (mul.mat[k][j]);
                     ret.mat[i][j] %= MOD;
                 }
             }
         }
+        return ret;
+    }
+
+    matrix operator ^(long long p) {
+        matrix ret = matrix(dim);
+        matrix m = *this;
+
+        for(int i=0; i<dim; i++) ret.mat[i][i] = 1;
+
+        while(p) {
+            if(p&1) ret = ret * m;
+            m = m * m;
+            p >>= 1;
+        }
 
         return ret;
-   }
-
-   matrix operator ^(ll p){
-       matrix ret = matrix(dim);
-       matrix m = *this;
-       for(ll i=0; i<dim; i++) ret.mat[i][i] = 1;
-
-       while(p){
-        if(p&1) ret = ret * m;
-        m = m * m;
-        p >>= 1;
-       }
-
-     return ret;
-   }
+    }
 
 };
 
